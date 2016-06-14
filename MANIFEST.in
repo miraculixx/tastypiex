@@ -1,0 +1,3 @@
+include README.md
+recursive-include tastypiex/static *
+recursive-include tastypiex/templates *
