@@ -36,7 +36,11 @@ iframe {
 		<div class="col-md-2">
 			<ul id="main-menu">
 				{% for api in apis %}
-				<li><a href="{% url api.namespace %}">{{ api.api_name }}</a></li> 
+				<li>
+					{{ api.api_name }}
+					<a href="{% url api.namespace %}">swagger</a>
+					<a href="{% url api.namespace %}/redoc">redoc</a>
+				</li>
 				{% endfor %}
 			</ul>
 		</div>
@@ -49,6 +53,9 @@ iframe {
         $(function() {
             $('a').click(function(e) {
                 var url = $(e.target).attr('href');
+                if(url.endsWith('redoc')) {
+                   url = url.replace('/swagger/', '')
+                }
                 $('#info').attr("src", url);
                 e.preventDefault();
             });

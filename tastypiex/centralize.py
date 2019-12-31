@@ -1,20 +1,21 @@
-
 from django.conf import settings
 from django.conf.urls import url, include
 from django.shortcuts import render
 from docutils.core import publish_parts
 from six import string_types
 
-from tastypiex.modresource import add_resource_mixins,\
+from tastypiex.modresource import add_resource_mixins, \
     override_resource_meta
 from tastypiex.util import load_api
 
 
 class ApiCentralView(object):
+    kind = None
+    template = 'tastypiex/index.html'
 
     def __init__(self, apis, template=None):
         self.apis = apis
-        self.template = template or 'tastypiex/apihome.html'
+        self.template = template or self.template
 
     def docview(self, request, *args, **kwargs):
         context = {
@@ -26,28 +27,28 @@ class ApiCentralView(object):
     def as_view(self):
         def view(request, *args, **kwargs):
             return self.docview(request, *args, **kwargs)
+
         return view
 
 
-class RedocView(object):
+class SwaggerIndexView(ApiCentralView):
+    kind = 'swagger'
 
-    def __init__(self, template=None):
-        self.template = template or 'tastypiex/redoc.html'
 
-    def docview(self, request, *args, **kwargs):
-        context = {
-            'request': request,
-        }
-        return render(request, self.template, context)
+class RedocIndexView(ApiCentralView):
+    kind = 'redoc'
 
-    def as_view(self):
-        def view(request, *args, **kwargs):
-            return self.docview(request, *args, **kwargs)
-        return view
+
+class RedocApiView(ApiCentralView):
+    kind = 'redoc'
+    template = 'tastypiex/redoc.html'
+
+    @property
+    def urlpatterns(self):
+        return tuple([url('$', self.as_view())])
 
 
 class ApiCentralizer(object):
-
     """
     use this to centralize tastypie APIs authorization and authentication
     handling
@@ -112,6 +113,7 @@ class ApiCentralizer(object):
         urlpatterns += patterns('', *ApiCentralizer(path=r'api/', swaggerui=False).urls)
         urlpatterns += patterns('', *ApiCentralizer(swaggerui=False).get_swagger_urls(path))
     """
+
     def __init__(self, config=None, apis=None, mixins=None, meta=None,
                  path=None, swaggerui=True, autoinit=True,
                  docstyle='markdown', redocui=True):
@@ -204,65 +206,78 @@ class ApiCentralizer(object):
             if isinstance(api, string_types):
                 api = load_api(api)
             urls.append(url(path, include(api.urls)))
+        docpath = (r'%s/doc/' % self.path).replace('//', '/')
         if self.swaggerui:
-            docpath = (r'%s/doc/' % self.path).replace('//', '/')
             # add per-api swagger ui
-            urls.extend(self.get_swagger_urls(docpath))
+            urls.extend(self.get_api_urls(docpath, kind='swagger'))
             # add main docview with links to per-api swagger ui
-            urls.append(url(docpath + '$', self.get_docview()))
+            urls.append(url(docpath + '$', self.get_docview(SwaggerIndexView)))
         if self.redocui:
-            docpath = (r'%s/redoc/' % self.path).replace('//', '/')
-            urls.append(url(docpath + '$', self.get_redocview()))
+            # docpath = (r'%s/doc/redoc/' % self.path).replace('//', '/')
+            urls.extend(self.get_api_urls(docpath, kind='redoc'))
+            urls.append(url(docpath + '$', self.get_docview(RedocIndexView)))
         return urls
 
-    def get_swagger_urls(self, path, apis=None):
+    def _gen_api_urls(self, apis, path, kind):
+        if '{api_name}' not in path:
+            path = (r'%s/{api_name}/{kind}/' % path).replace('//', '/')
+        for api in apis:
+            if isinstance(api, string_types):
+                api = load_api(api)
+            namespace = self.get_apidoc_url_namespace(api, kind)
+            kwargs = {
+                'tastypie_api_module': api,
+                'namespace': namespace,
+                'version': 'v1'
+            }
+            api_regex = path.format(api_name=api.api_name, kind=kind)
+            yield api, api_regex, namespace, kwargs
+
+    def get_api_urls(self, path, apis=None, kind='swagger'):
         """
         generate per-api swagger ui urls for all apis
 
         :param path: the regex path to use. will be appended with
         api.api_name unless the string contains the {api_name} placeholder
         :param apis: a list of apis as a string or tuple of Api instances. If
-        passed as a string as path.to.module.api the api will be loaded 
+        passed as a string as path.to.module.api the api will be loaded
+        :param kind: either swagger or redoc, defaults to swagger
         """
-        apis = apis or self.apis
         urls = []
-        if '{api_name}' not in path:
-            path = (r'%s/{api_name}/' % path).replace('//', '/')
-        for api in apis:
-            if isinstance(api, string_types):
-                api = load_api(api)
-            namespace = self.get_swagger_url_namespace(api)
-            kwargs = {
-                'tastypie_api_module': api,
-                'namespace': namespace,
-                'version': 'v1'
-            }
-            api_regex = path.format(api_name=api.api_name)
-            docurl = url(api_regex, include('tastypie_swagger.urls',
-                                            namespace=namespace), kwargs=kwargs)
+        apis = apis or self.apis
+        for api, api_regex, namespace, kwargs in self._gen_api_urls(apis, path, kind):
+            if kind == 'swagger':
+                docurl = url(api_regex, include('tastypie_swagger.urls',
+                                                namespace=namespace), kwargs=kwargs)
+            elif kind == 'redoc':
+                docurl = url(api_regex, include(RedocApiView([api]),
+                                                namespace=namespace), kwargs=kwargs)
+            else:
+                raise ValueError('kind {} not supported'.format(kind))
             urls.append(docurl)
         return urls
 
-    def get_swagger_url_namespace(self, api):
-        """ return the swagger url namespace for the api """
-        return 'api_tastypie_swagger_%s' % api.api_name.replace('/', '_')
+    def get_apidoc_url_namespace(self, api, kind):
+        """ return the url namespace for the api """
+        return 'api_tastypie_%s_%s' % (kind, api.api_name.replace('/', '_'))
 
     def get_apis(self, apimap):
         apis = []
-        apimap = apimap or getattr(settings, 'API_CONFIG', {}).get('apis', ())
+        apimap = apimap or getattr(settings, 'API_CONFIG', {}).get('apis')
         # find all apis o be registered, filter by installed apps
-        for app, api in apimap:
-            if app in settings.INSTALLED_APPS:
-                if hasattr(api, '__call__'):
-                    apis.append(api())
-                else:
-                    if isinstance(api, tuple) or isinstance(api, list):
-                        apis.extend(api)
+        if apimap:
+            for app, api in apimap:
+                if app in settings.INSTALLED_APPS:
+                    if hasattr(api, '__call__'):
+                        apis.append(api())
                     else:
-                        apis.append(api)
+                        if isinstance(api, tuple) or isinstance(api, list):
+                            apis.extend(api)
+                        else:
+                            apis.append(api)
         return apis
 
-    def get_docview(self, apis=None, template=None):
+    def get_docview(self, viewcls, apis=None, template=None):
         """
         return a url-capable view to produce a link list to all apis
 
@@ -274,15 +289,8 @@ class ApiCentralizer(object):
         for api in apis:
             if isinstance(api, string_types):
                 api = load_api(api)
-
             docapis.append({
                 'api_name': api.api_name,
-                'namespace': '%s:index' % self.get_swagger_url_namespace(api),
+                'namespace': '%s:index' % self.get_apidoc_url_namespace(api, viewcls.kind),
             })
-        return ApiCentralView(docapis, template=template).as_view()
-
-    def get_redocview(self, template=None):
-        """
-        return the view to ReDoc
-        """
-        return RedocView().as_view()
+        return viewcls(docapis, template=template).as_view()

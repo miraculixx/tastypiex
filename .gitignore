@@ -103,3 +103,9 @@ venv.bak/
 
 
 # End of https://www.gitignore.io/api/python
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/tastypiex.iml
+/.idea/workspace.xml
+/.project
+/.pydevproject
