@@ -68,8 +68,7 @@ class FromModelField(ApiField):
     def try_model_field(self, field, key):
         try:
             value = int(key) if field== 'pk' else str(key)
-            for level in field.split('__'):
-                value = self.model.objects.get(**{level: value})
+            value = self.model.objects.get(**{field: value})
         except:
             return False, None
         return True, value
