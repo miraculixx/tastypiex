@@ -54,19 +54,17 @@ class SelfAuthorization(Authorization):
 
     def check_obj_perm(self, obj, bundle):
         # user must be owner of the object or superuser
-        allowed = False
-        request_user = bundle.request.user
-        for field in self.check_fields:
-            if not '.' in field:
-                check_obj = obj if field == 'self' else getattr(obj, field, None)
-            else:
-                field, attribute = field.split('.')
-                check_obj = getattr(getattr(obj, field), attribute)
-            allowed |= (check_obj is not None and check_obj == request_user)
-        allowed |= self.is_superuser(bundle)
-        if allowed:
-            return True
-        return False
+        allowed = self.is_superuser(bundle)
+        if not allowed:
+            request_user = bundle.request.user
+            for field in self.check_fields:
+                if not '.' in field:
+                    check_obj = obj if field == 'self' else getattr(obj, field, None)
+                else:
+                    field, attribute = field.split('.')
+                    check_obj = getattr(getattr(obj, field), attribute)
+                allowed |= (check_obj is not None and check_obj == request_user)
+        return allowed
 
     def check_django_perm(self, scope, action, object_list, bundle):
         if isinstance(self.require_perm, str) and bundle.request.user.has_perm(self.require_perm):

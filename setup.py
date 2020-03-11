@@ -33,6 +33,8 @@ setup(
     install_requires=[
         'Django<1.9',
         'django-tastypie<=0.12.2',
+        'docutils==0.15',
+        #'django-tastypie-swagger==0.1.3',  # see miraculixx
     ],
     dependency_links=[
     ]
