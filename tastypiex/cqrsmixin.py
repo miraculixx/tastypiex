@@ -3,7 +3,6 @@ from tastypie.utils import trailing_slash
 
 
 class CQRSApiMixin(object):
-
     """
     A mixin to add CQRS-style commands to URL resources
 
@@ -18,7 +17,7 @@ class CQRSApiMixin(object):
                 ....
                 return self.create_response(request, data)
 
-        This will add url /api/foo/<pk>/xyz/ 
+        This will add url /api/foo/<pk>/xyz/
     """
 
     def prepend_urls(self):
@@ -60,23 +59,43 @@ class CQRSApiMixin(object):
 
 
 def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=None):
+    cqrsargs = dict(cqrsargs=dict(cqrs_method=method,
+                                  cqrs_name=name,
+                                  allowed_methods=allowed_methods,
+                                  authenticate=authenticate))
+
     def wrap(method):
         # wrap() is called at declaration time and returns dispatch
-        # dispatch() is the actual view function
+        # dispatch() is the actual view function, effectively overriding Resource.dispatch
         def dispatch(self, request, *args, **kwargs):
-            # standard tastypie processing, see Resource.dispatch()
-            self.method_check(request, allowed=dispatch.allowed_methods)
-            if authenticate is None or authenticate:
-                self.is_authenticated(request)
-            self.throttle_check(request)
-            self.log_throttled_access(request)
-            resp = method(self, request, *args, **kwargs)
+            # this is a copy of standard tastypie processing, see Resource.dispatch()
+            # difference here is that we call the @cqrsapi'd method()
+            def inner_dispatch(request, *args, **kwargs):
+                self.method_check(request, allowed=dispatch.allowed_methods)
+                if authenticate is None or authenticate:
+                    self.is_authenticated(request)
+                self.throttle_check(request)
+                self.log_throttled_access(request)
+                resp = method(self, request, *args, **kwargs)
+                return resp
+
+            # setup hooks
+            noop = lambda *args, **kwargs: None
+            pre_dispatch = getattr(self, 'pre_cqrs_dispatch', noop)
+            real_dispatch = getattr(self, 'cqrs_dispatch', inner_dispatch)
+            post_dispatch = getattr(self, 'post_cqrs_dispatch', noop)
+            # do actual dispatching
+            pre_dispatch(request, *args, **kwargs, **cqrsargs)
+            resp = real_dispatch(request, *args, **kwargs, **cqrsargs)
+            post_dispatch(resp, *args, **kwargs, **cqrsargs)
             return resp
+
         dispatch.cqrsname = name or method.__name__
         dispatch.allowed_methods = allowed_methods
         dispatch.cqrsapi = True
         dispatch.__doc__ = method.__doc__
         return dispatch
+
     if callable(method):
         return wrap(method)
     return wrap
