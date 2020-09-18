@@ -31,8 +31,8 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     install_requires=[
-        'Django<1.9',
-        'django-tastypie<=0.12.2',
+        'Django==2.2',
+        'django-tastypie==0.14.3',
         'docutils==0.15',
         #'django-tastypie-swagger==0.1.3',  # see miraculixx
     ],
