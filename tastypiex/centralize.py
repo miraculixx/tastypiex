@@ -247,10 +247,10 @@ class ApiCentralizer(object):
         apis = apis or self.apis
         for api, api_regex, namespace, kwargs in self._gen_api_urls(apis, path, kind):
             if kind == 'swagger':
-                docurl = url(api_regex, include('tastypie_swagger.urls',
+                docurl = url(api_regex, include(('tastypie_swagger.urls', 'swagger'),
                                                 namespace=namespace), kwargs=kwargs)
             elif kind == 'redoc':
-                docurl = url(api_regex, include(RedocApiView([api]),
+                docurl = url(api_regex, include((RedocApiView([api]), 'redoc'),
                                                 namespace=namespace), kwargs=kwargs)
             else:
                 raise ValueError('kind {} not supported'.format(kind))
