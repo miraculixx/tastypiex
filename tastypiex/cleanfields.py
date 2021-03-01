@@ -17,7 +17,7 @@ class CleanBundleFieldsMixin(object):
     """
     def alter_detail_data_to_serialize(self, request, bundle):
         data = bundle.data
-        if len(self._meta.fields):
+        if self._meta.fields:
             for k in [k for k in data.keys() if k not in self._meta.fields]:
                 if k != 'resource_uri':
                     del data[k]
