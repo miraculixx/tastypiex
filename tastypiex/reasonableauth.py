@@ -61,7 +61,7 @@ class ReasonableDjangoAuthorization(DjangoAuthorization):
         try:
             content_type = ContentType.objects.get_for_model(model)
             Permission.objects.get(content_type=content_type, codename=perm)
-        except:
+        except Exception:
             self._permission_exists[perm] = False
         else:
             self._permission_exists[perm] = True
@@ -104,4 +104,3 @@ class ReasonableDjangoAuthorization(DjangoAuthorization):
             return self.perm_obj_checks(bundle.request,
                                         'delete', object_list)
         return object_list.none()
-

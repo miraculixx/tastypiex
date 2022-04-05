@@ -33,10 +33,10 @@ logger = logging.getLogger(__name__)
 
 
 class CORSResourceMixin(object):
-
     """
     Class implementing CORS
     """
+
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "CORSResourceMixin is deprecated - use django-cors-middleware",
@@ -71,7 +71,7 @@ class CORSResourceMixin(object):
         In case of POST make sure we return the Access-Control-Allow Origin
         regardless of returning data
         """
-        #logger.debug("post list %s\n%s" % (request, kwargs));
+        # logger.debug("post list %s\n%s" % (request, kwargs));
         response = super(CORSResourceMixin, self).post_list(request, **kwargs)
         return self.add_cors_headers(response, True)
 
@@ -80,7 +80,7 @@ class CORSResourceMixin(object):
         In case of POST make sure we return the Access-Control-Allow Origin
         regardless of returning data
         """
-        #logger.debug("post detail %s\n%s" (request, **kwargs));
+        # logger.debug("post detail %s\n%s" (request, **kwargs));
         response = super(CORSResourceMixin, self).post_list(request, **kwargs)
         return self.add_cors_headers(response, True)
 
@@ -139,7 +139,7 @@ class CORSResourceMixin(object):
             response['Allow'] = allows
             raise ImmediateHttpResponse(response=response)
 
-        if not request_method in allowed:
+        if request_method not in allowed:
             response = http.HttpMethodNotAllowed(allows)
             response['Allow'] = allows
             raise ImmediateHttpResponse(response=response)
@@ -152,7 +152,9 @@ class CORSResourceMixin(object):
             request.format = kwargs.pop('format', None)
             wrapped_view = super(CORSResourceMixin, self).wrap_view(view)
             return wrapped_view(request, *args, **kwargs)
+
         return wrapper
+
 
 # Base Extended Abstract Model
 
@@ -163,6 +165,7 @@ class CORSModelResource(CORSResourceMixin, ModelResource):
 
 class CORSResource(CORSResourceMixin, Resource):
     pass
+
 
 # backwards compability
 BaseCorsResourceMixin = CORSResourceMixin

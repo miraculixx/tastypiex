@@ -32,10 +32,14 @@ setup(
     ],
     install_requires=[
         'Django<3',
-        'django-tastypie<0.14.3',
+        'django-tastypie>=0.14.3',
         'docutils==0.15',
-        #'django-tastypie-swagger==0.1.3',  # see miraculixx
     ],
+    extras_require={
+      'swagger': [
+          'django-tastypie-swagger@git+https://github.com/miraculixx/django-tastypie-swagger.git',
+      ]
+    },
     dependency_links=[
     ]
 )

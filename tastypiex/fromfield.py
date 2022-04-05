@@ -65,13 +65,18 @@ class FromModelField(ApiField):
         self.model_fields = model_fields or ('pk',)
         self.check_perm = check_perm
 
-    def try_model_field(self, field, key):
+    def try_model_field(self, bundle, field, key):
         try:
-            value = int(key) if field== 'pk' else str(key)
-            value = self.model.objects.get(**{field: value})
-        except:
+            value = int(key) if field == 'pk' else str(key)
+            value = self.get_queryset(bundle.request).get(**{field: value})
+        except Exception:
             return False, None
         return True, value
+
+    def get_queryset(self, request):
+        qs = self.model.objects
+        qs = qs.for_request(request) if hasattr(qs, 'for_request') else qs
+        return qs
 
     def hydrate(self, bundle):
         # return a direct model object
@@ -81,10 +86,10 @@ class FromModelField(ApiField):
         try:
             pk = uri.strip('/').split('/')[-1]
             for field in self.model_fields:
-                worked, obj = self.try_model_field(field, pk)
+                worked, obj = self.try_model_field(bundle, field, pk)
                 if worked:
                     break
-        except:
+        except Exception:
             raise BadRequest('Cannot read data from {uri}'.format(**locals()))
         if self.check_perm:
             self.check_perm(bundle, obj)

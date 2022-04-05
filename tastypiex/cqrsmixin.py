@@ -1,4 +1,3 @@
-from six import iteritems
 from tastypie.utils import trailing_slash
 
 
@@ -29,7 +28,7 @@ class CQRSApiMixin(object):
         urls = super(CQRSApiMixin, self).prepend_urls()
         if not hasattr(self._meta, 'extra_actions'):
             self._meta.extra_actions = []
-        for name, method in iteritems(self.__class__.__dict__):
+        for name, method in self.__class__.__dict__.items():
             if not hasattr(method, 'cqrsapi'):
                 continue
             # link meta information
@@ -80,7 +79,7 @@ def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=None):
                 return resp
 
             # setup hooks
-            noop = lambda *args, **kwargs: None
+            noop = lambda *args, **kwargs: None  # noqa
             pre_dispatch = getattr(self, 'pre_cqrs_dispatch', noop)
             real_dispatch = getattr(self, 'cqrs_dispatch', inner_dispatch)
             post_dispatch = getattr(self, 'post_cqrs_dispatch', noop)
