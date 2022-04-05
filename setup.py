@@ -8,7 +8,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='tastypiex',
-    version='0.2',
+    version='0.5',
     packages=find_packages(),
     include_package_data=True,
     license='MIT',  # example license
@@ -31,7 +31,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     install_requires=[
-        'Django<3',
+        'Django~=3.2',
         'django-tastypie>=0.14.3',
         'docutils==0.15',
     ],
