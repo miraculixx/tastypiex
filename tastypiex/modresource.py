@@ -1,10 +1,9 @@
-from six import iteritems
 def override_api_meta(api, meta, resources=None):
     """
     override all meta for resources in an api
 
     Uses the attributes in Meta to override the same in the resources
-    of the api. Use the resources paramters to specify the list of 
+    of the api. Use the resources paramters to specify the list of
     resource names to restrict the changes.
 
     :param api: the Api instance
@@ -13,7 +12,7 @@ def override_api_meta(api, meta, resources=None):
     """
     if resources:
         # filter by resource name
-        resources = (v for k, v in iteritems(api._registry) if k in resources)
+        resources = (v for k, v in api._registry.items() if k in resources)
     else:
         resources = api._registry.values()
     for resource in resources:
@@ -25,7 +24,7 @@ def override_resource_meta(resource, meta):
     """ override meta """
     if meta:
         # override Meta attributes
-        for k, v in iteritems(meta.__dict__):
+        for k, v in meta.__dict__.items():
             if k.startswith('__'):
                 continue
             setattr(resource._meta.__class__, k, v)

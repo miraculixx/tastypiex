@@ -1,6 +1,4 @@
-from __future__ import print_function
 class ClientRequestTracer(object):
-
     """
     Trace api calls to a test client
 
@@ -8,18 +6,20 @@ class ClientRequestTracer(object):
        self.client = ClientRequestTracer(self.client)
        self.api_client = ClientRequestTracer(self.api_client)
 
-       Limit the traces by giving parameter traces=[...] list of 
+       Limit the traces by giving parameter traces=[...] list of
        strings 'get', 'post', 'put'
 
        To print requests only (no response), pass response=True
 
     Will print all requests made:
-        Request: get, ('/api/v1/coach/itinerary/?origin=Zurich&destination=Hamburg&departure=None',), {'authentication': u'Basic dGVzdHVzZXI6dGVzdA=='}
+        Request: get, ('/api/v1/coach/itinerary/?origin=Zurich&destination=Hamburg&departure=None',),
+                 {'authentication': u'Basic dGVzdHVzZXI6dGVzdA=='}
 
     Optionally prints the response including headers and body
 
     Gist: https://gist.github.com/miraculixx/a6b0a3764d22a197493c
     """
+
     def __init__(self, client, traces=None, response=False):
         self.client = client
         self.__traces__ = traces or ['get', 'post', 'put']
@@ -39,5 +39,6 @@ class ClientRequestTracer(object):
                     print("Response:\n", resp)
                     print("*" * 10)
                 return resp
+
             return trace
         return attr

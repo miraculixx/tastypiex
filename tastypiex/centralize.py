@@ -2,7 +2,6 @@ from django.conf import settings
 from django.conf.urls import url, include
 from django.shortcuts import render
 from docutils.core import publish_parts
-from six import string_types
 
 from tastypiex.modresource import add_resource_mixins, \
     override_resource_meta
@@ -61,7 +60,7 @@ class ApiCentralizer(object):
     * all of the above can be done dynamically at run-time (except changing
       urls)
 
-    ApiCentralizer provides the .urls property to load urls for apis for 
+    ApiCentralizer provides the .urls property to load urls for apis for
     only applications that are in INSTALLED_APPS. This is useful e.g.
     if you have multiple deployments with different installed applications.
 
@@ -69,9 +68,9 @@ class ApiCentralizer(object):
     * use settings.py to specify which APIs get loaded into urlpatterns
     * automatically add swagger ui URLs if django-tastypie-swagger is installed
 
-    If django-tastypie-swagger is installed, ApiCentralizer.urls will 
+    If django-tastypie-swagger is installed, ApiCentralizer.urls will
     automatically build the required urls such that each Api gets its own
-    swagger ui instance. 
+    swagger ui instance.
 
     Why?
 
@@ -130,7 +129,7 @@ class ApiCentralizer(object):
         """ centralize all resources in an Api """
         for api in apis:
             # if a string is given, load
-            if isinstance(api, string_types):
+            if isinstance(api, str):
                 api = load_api(api)
             for resource in api._registry.values():
                 self.centralize_resource(resource, mixins=mixins, meta=meta)
@@ -138,7 +137,7 @@ class ApiCentralizer(object):
 
     def centralize_resource(self, resource, mixins=None, meta=None):
         """override Meta attributes in a Resource or add mixins"""
-        if isinstance(resource, string_types):
+        if isinstance(resource, str):
             # load resource if given as a string path.to.api.resource
             parts = resource.split('.')
             apipath, api_name = '.'.join(parts[0:-1]), parts[-1]
@@ -154,7 +153,7 @@ class ApiCentralizer(object):
 
         will update resource.__doc__ with converted text. this is
         so you can use markdown or reST in line with your documentation
-        setup, e.g. sphinx. 
+        setup, e.g. sphinx.
 
         :param kind: markdown|rest, defaults to markdown
         """
@@ -169,7 +168,7 @@ class ApiCentralizer(object):
                 doc = markdown(doc)
             elif kind == 'rest':
                 doc = publish_parts(doc).get('html_body', doc)
-        except:
+        except Exception:
             # we simply ignore errors
             pass
         else:
@@ -189,7 +188,7 @@ class ApiCentralizer(object):
         }
         # urls.py
         urlpatterns += patterns('', *ApiCentralizer().urls)
-        => adds all api urls of apps in INSTALLED_APPS 
+        => adds all api urls of apps in INSTALLED_APPS
         """
         return self.get_urls(self.path)
 
@@ -198,12 +197,12 @@ class ApiCentralizer(object):
         same as .urls property, use to specify path dynamically
         details see url
 
-        :param path: the regexp in url(regexp, ...) 
+        :param path: the regexp in url(regexp, ...)
         """
         assert self.apis, "ApiCentralizer: no apis known. Did you specify autoinit=True?"
         urls = []
         for api in self.apis:
-            if isinstance(api, string_types):
+            if isinstance(api, str):
                 api = load_api(api)
             urls.append(url(path, include(api.urls)))
         docpath = (r'%s/doc/' % self.path).replace('//', '/')
@@ -222,7 +221,7 @@ class ApiCentralizer(object):
         if '{api_name}' not in path:
             path = (r'%s/{api_name}/{kind}/' % path).replace('//', '/')
         for api in apis:
-            if isinstance(api, string_types):
+            if isinstance(api, str):
                 api = load_api(api)
             namespace = self.get_apidoc_url_namespace(api, kind)
             kwargs = {
@@ -287,7 +286,7 @@ class ApiCentralizer(object):
         apis = apis or self.apis
         docapis = []
         for api in apis:
-            if isinstance(api, string_types):
+            if isinstance(api, str):
                 api = load_api(api)
             docapis.append({
                 'api_name': api.api_name,

@@ -1,9 +1,6 @@
-from django.contrib.auth.models import User
-from tastypie.authorization import Authorization, DjangoAuthorization
+from tastypie.authorization import Authorization
 from tastypie.compat import get_module_name
 from tastypie.exceptions import Unauthorized
-
-from tastypiex.reasonableauth import ReasonableDjangoAuthorization
 
 
 class SelfAuthorization(Authorization):
@@ -58,7 +55,7 @@ class SelfAuthorization(Authorization):
         if not allowed:
             request_user = bundle.request.user
             for field in self.check_fields:
-                if not '.' in field:
+                if '.' not in field:
                     check_obj = obj if field == 'self' else getattr(obj, field, None)
                 else:
                     field, attribute = field.split('.')

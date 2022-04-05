@@ -1,4 +1,3 @@
-import six
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
 from tastypiex.util import load_class
@@ -34,7 +33,7 @@ class DeferredAuthentication(Authentication):
     def load_backends(self):
         from django.conf import settings
         backends = getattr(settings, self.setting, self.default_backend)
-        if isinstance(backends, six.string_types):
+        if isinstance(backends, str):
             backends = (backends,)
         for backend_name in backends:
             backend = load_class(backend_name)()
@@ -97,7 +96,7 @@ class DeferredAuthorization(Authorization):
     def load_backends(self):
         from django.conf import settings
         backends = getattr(settings, self.setting, self.default_backend)
-        if isinstance(backends, six.string_types):
+        if isinstance(backends, str):
             backends = (backends,)
         for backend_name in backends:
             backend = load_class(backend_name)()
@@ -108,19 +107,19 @@ class DeferredAuthorization(Authorization):
     def backends(self):
         return self._backends or self.load_backends()
 
-    def _check_method(method):  # @NoSelf
+    def _check_method(meth):  # @NoSelf
         """
         generate methods as defined below
         """
 
         def inner(self, request, object_list):
             for backend in self.backends:
-                method = getattr(backend, method)
-                result = method(request, object_list)
+                cmeth = getattr(backend, meth)
+                result = cmeth(request, object_list)
                 if result:
                     return result
 
-        inner.__doc__ = "{}".format(getattr(Authorization, method).__doc__)
+        inner.__doc__ = "{}".format(getattr(Authorization, meth).__doc__)
         return inner
 
     apply_limits = _check_method('apply_limits')
