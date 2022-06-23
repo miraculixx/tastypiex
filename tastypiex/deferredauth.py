@@ -122,7 +122,6 @@ class DeferredAuthorization(Authorization):
         inner.__doc__ = "{}".format(getattr(Authorization, meth).__doc__)
         return inner
 
-    apply_limits = _check_method('apply_limits')
     create_detail = _check_method('create_detail')
     create_list = _check_method('create_list')
     delete_detail = _check_method('delete_detail')

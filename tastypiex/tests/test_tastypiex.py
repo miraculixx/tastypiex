@@ -28,18 +28,17 @@ class TastypieXTestCases(unittest.TestCase):
 
     def test_django_dependencies(self):
         os.environ['DJANGO_SETTINGS_MODULE'] = 'app.settings'
-        with self.assertRaises(ModuleNotFoundError):
-            from tastypiex import cors
-            from tastypiex import cqrsmixin
-            from tastypiex import deferredauth
-            from tastypiex import fromfield
-            from tastypiex import reasonableauth
-            from tastypiex import selfauth
-            from tastypiex import superuserauth
-            cors = cors
-            cqrsmixin = cqrsmixin
-            deferredauth = deferredauth
-            fromfield = fromfield
-            reasonableauth = reasonableauth
-            selfauth = selfauth
-            superuserauth = superuserauth
+        from tastypiex import cors
+        from tastypiex import cqrsmixin
+        from tastypiex import deferredauth
+        from tastypiex import fromfield
+        from tastypiex import reasonableauth
+        from tastypiex import selfauth
+        from tastypiex import superuserauth
+        cors = cors
+        cqrsmixin = cqrsmixin
+        deferredauth = deferredauth
+        fromfield = fromfield
+        reasonableauth = reasonableauth
+        selfauth = selfauth
+        superuserauth = superuserauth
