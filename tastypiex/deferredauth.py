@@ -48,6 +48,9 @@ class DeferredAuthentication(Authentication):
         for backend in self.backends:
             result = backend.is_authenticated(request, **kwargs)
             if result:
+                # store the actual authentication backend
+                # (as MultiAuthentication does)
+                request._authentication_backend = backend
                 return result
         return False
 
