@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext as _
 from tastypie.authentication import Authentication
 from tastypie.compat import get_username_field
 from tastypie.http import HttpUnauthorized
@@ -28,7 +27,7 @@ class JWTAuthentication(Authentication):
         token = mixins.get_token_from_request(request)
         payload = mixins.get_payload_from_token(token)
         userid = mixins.jwt_get_user_id_from_payload(payload)
-        return userid, payload
+        return userid, token
 
     def is_authenticated(self, request, **kwargs):
         """
@@ -38,30 +37,25 @@ class JWTAuthentication(Authentication):
         ``HttpResponse`` if you need something custom.
         """
         from jwt_auth.exceptions import AuthenticationFailed
-
         # validate credentials in jwt
         try:
-            userid, payload = self.extract_credentials(request)
-        except AuthenticationFailed:
+            userid, token = self.extract_credentials(request)
+            user = self._get_user(userid)
+        except Exception:
             return self._unauthorized()
-        if not userid or not payload:
-            return self._unauthorized()
+        request.user = user
         return True
+
+    def _get_user(self, userid):
+        username_field = get_username_field()
+        lookup_kwargs = {username_field: userid}
+        UserModel = get_user_model()
+        user = UserModel.objects.get(**lookup_kwargs)
+        return user
 
 
 def jwt_get_user_id_from_payload_handler(payload):
-    from jwt_auth.exceptions import AuthenticationFailed
-
     # this retrieves the userid from a username, not the userid
     # adapted from jwt_auth.utils.jwt_get_user_id_from_payload_handler
-    username = payload.get(getattr(settings, 'JWT_PAYLOAD_USERNAME_KEY', 'username'))
-    username_field = get_username_field()
-    lookup_kwargs = {username_field: username}
-    UserModel = get_user_model()
-    try:
-        user = UserModel.objects.get(**lookup_kwargs)
-    except UserModel.DoesNotExist:
-        user = None
-    if user is None or not user.is_active:
-        raise AuthenticationFailed(_("Invalid payload"))
-    return user.pk
+    username = payload.get(getattr(settings, 'JWT_PAYLOAD_USERNAME_KEY', 'preferred_username'))
+    return username
