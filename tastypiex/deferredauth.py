@@ -28,7 +28,7 @@ class DeferredAuthentication(Authentication):
                  require_active=True):
         self.setting = setting
         self.default_backend = default_backend or ('tastypie.authentication.Authentication',)
-        self._backends = None
+        self._backends = []
 
     def load_backends(self):
         from django.conf import settings
@@ -48,6 +48,9 @@ class DeferredAuthentication(Authentication):
         for backend in self.backends:
             result = backend.is_authenticated(request, **kwargs)
             if result:
+                # store the actual authentication backend
+                # (as MultiAuthentication does)
+                request._authentication_backend = backend
                 return result
         return False
 
