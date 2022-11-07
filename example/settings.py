@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'tastypie'
 ]
 
 MIDDLEWARE = [
@@ -123,3 +124,12 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# use this to have PyCharm integration for Django tests
+try:
+    import teamcity
+    TEST_RUNNER = "teamcity.django.TeamcityDjangoRunner"
+except ModuleNotFoundError:
+    pass
+
+TASTYPIE_APIKEY_DURATION = dict(years=99)

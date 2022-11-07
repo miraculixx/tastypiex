@@ -1,5 +1,5 @@
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 
 README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
 
@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setup(
     name='tastypiex',
     version='0.5',
-    packages=find_packages(),
+    packages=['tastypiex'],
     include_package_data=True,
     license='MIT',  # example license
     description='tastypie extensions',
