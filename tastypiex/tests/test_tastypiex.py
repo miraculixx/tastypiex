@@ -1,5 +1,10 @@
+from datetime import timedelta
+
+from django.contrib.auth.models import User
+from django.utils import timezone
 from tastypie.api import Api
 from tastypie.authentication import Authentication
+from tastypie.http import HttpUnauthorized
 from tastypie.resources import Resource
 
 from unittest.mock import patch, Mock
@@ -88,3 +93,26 @@ class TastypieXTestCases(TestCase):
         self.assertIsInstance(fooresource._meta.authentication, MyAuthentication)
         self.assertIsInstance(barresource._meta.authentication, MyAuthentication)
 
+
+    def test_rotating_apikey(self):
+        from tastypie.models import ApiKey
+        from tastypiex.rotapikey import RotatingApiKeyAuthentication
+        user = User.objects.create_user('testuser')
+        apikey = ApiKey.objects.create(user=user)
+        current_key = apikey.key
+        auth = RotatingApiKeyAuthentication()
+        # no limitation
+        future_dt = lambda : timezone.now() + timedelta(weeks=52*5)
+        self.assertTrue(auth.get_key(user, current_key))
+        self.assertTrue(auth.get_key(user, current_key, now=future_dt))
+        # limit to some duration
+        with self.settings(TASTYPIE_APIKEY_DURATION={'days': 5}):
+            # -- still valid within time period
+            future_dt = lambda: apikey.created + timedelta(days=4)
+            self.assertTrue(auth.get_key(user, current_key, now=future_dt))
+            # -- not valid after time period
+            future_dt = lambda: apikey.created + timedelta(days=6)
+            self.assertIsInstance(auth.get_key(user, current_key, now=future_dt), HttpUnauthorized)
+            # -- new key has been generated
+            new_key = user.api_key.key
+            self.assertNotEqual(current_key, new_key)
