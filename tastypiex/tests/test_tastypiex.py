@@ -5,14 +5,13 @@ from tastypie.resources import Resource
 from unittest.mock import patch, Mock
 
 import os
-
-import unittest
+from django.test import TestCase
 
 from tastypiex.centralize import ApiCentralizer
 from tastypiex.deferredauth import DeferredAuthentication
 
 
-class TastypieXTestCases(unittest.TestCase):
+class TastypieXTestCases(TestCase):
     """ #SHAME this tests the bare minimum
 
     Rationale:
@@ -21,6 +20,8 @@ class TastypieXTestCases(unittest.TestCase):
     """
     # FIXME add realtests
 
+    def setUp(self):
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'example.settings'
     def test_simple(self):
         from tastypiex import centralize
         from tastypiex import cleanfields
