@@ -1,6 +1,6 @@
 from datetime import timedelta
-
 from django.conf import settings
+
 from django.utils import timezone
 from tastypie.authentication import ApiKeyAuthentication
 
@@ -43,6 +43,9 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
     def maybe_rotate_key(self, user, now=timezone.now):
         # rotate the key if the current key has expired
         # return True if a new key has been generated, else False
+        # usernames listed in settings.TASTYPIE_APIKEY_PERMANENT are never expired
+        if user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or []):
+            return False
         duration = self._apikey_duration or getattr(settings, 'TASTYPIE_APIKEY_DURATION', None)
         if duration:
             duration = duration if isinstance(duration, dict) else {'days': int(duration)}
@@ -56,3 +59,4 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
                 user.api_key.save()
                 return True
         return False
+
