@@ -23,10 +23,12 @@ class TastypieXTestCases(TestCase):
         We test tastypiex functionality as part of our internal applications,
         i.e. there is sufficient test coverage for our purpose
     """
+
     # FIXME add realtests
 
     def setUp(self):
         os.environ['DJANGO_SETTINGS_MODULE'] = 'example.settings'
+
     def test_simple(self):
         from tastypiex import centralize
         from tastypiex import cleanfields
@@ -69,6 +71,7 @@ class TastypieXTestCases(TestCase):
 
     def test_centralize_override_authentication(self):
         """ test tastypiex.ApiCentralizer overrides all resources Meta.authentication """
+
         class FooResource(Resource):
             class Meta:
                 authentication = Authentication()
@@ -93,7 +96,6 @@ class TastypieXTestCases(TestCase):
         self.assertIsInstance(fooresource._meta.authentication, MyAuthentication)
         self.assertIsInstance(barresource._meta.authentication, MyAuthentication)
 
-
     def test_rotating_apikey(self):
         from tastypie.models import ApiKey
         from tastypiex.rotapikey import RotatingApiKeyAuthentication
@@ -102,7 +104,7 @@ class TastypieXTestCases(TestCase):
         current_key = apikey.key
         auth = RotatingApiKeyAuthentication()
         # no limitation
-        future_dt = lambda : timezone.now() + timedelta(weeks=52*5)
+        future_dt = lambda: timezone.now() + timedelta(weeks=52 * 5)
         self.assertTrue(auth.get_key(user, current_key))
         self.assertTrue(auth.get_key(user, current_key, now=future_dt))
         # limit to some duration
@@ -116,3 +118,27 @@ class TastypieXTestCases(TestCase):
             # -- new key has been generated
             new_key = user.api_key.key
             self.assertNotEqual(current_key, new_key)
+
+    def test_no_rotating_apikey_permanent(self):
+        from tastypie.models import ApiKey
+        from tastypiex.rotapikey import RotatingApiKeyAuthentication
+        user = User.objects.create_user('testuser')
+        apikey = ApiKey.objects.create(user=user)
+        current_key = apikey.key
+        auth = RotatingApiKeyAuthentication()
+        # no limitation
+        future_dt = lambda: timezone.now() + timedelta(weeks=52 * 5)
+        self.assertTrue(auth.get_key(user, current_key))
+        self.assertTrue(auth.get_key(user, current_key, now=future_dt))
+        # test user exemption from apikey rotation
+        with self.settings(TASTYPIE_APIKEY_DURATION={'days': 5},
+                           TASTYPIE_APIKEY_PERMANENT=[user.username]):
+            # -- still valid within time period
+            future_dt = lambda: apikey.created + timedelta(days=4)
+            self.assertTrue(auth.get_key(user, current_key, now=future_dt))
+            # -- still valid after time period
+            future_dt = lambda: apikey.created + timedelta(days=6)
+            self.assertEqual(auth.get_key(user, current_key, now=future_dt), True)
+            # -- no new key has been generated
+            new_key = user.api_key.key
+            self.assertEqual(current_key, new_key)
