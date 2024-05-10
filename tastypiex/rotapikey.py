@@ -16,16 +16,22 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
 
     Usage:
         # tastypie.Resource
+        # -- combine with other authentication schemes
         class Meta:
-            authentication = RotatingApiKeyAuthentication()
+            authentication = MultiAuthentication(RotatingApiKeyAuthentication(),
+                                                 SessionAuthentication())
 
         # settings
+        # -- seconds
+        TASTYPIE_APIKEY_DURATION = 3600
         # -- days
-        TASTYPIE_APIKEY_DURATION = 5
+        TASTYPIE_APIKEY_DURATION = dict(days=1) # calendar day
         # -- hours, or any other kwarg for timedelta()
         TASTYPIE_APIKEY_DURATION = dict(hours=24) # 24 hours
         # -- we also handle years as 52 * value
         TASTYPIE_APIKEY_DURATION = dict(years=2) # 24 hours
+        # -- apikey postfix to interactively designate a key permanent
+        TASTYPIE_APIKEY_PERMANENT_POSTFIX = '#p'
 
         Instead of settings.TASTYPIE_APIKEY_DURATION you can also specify
         RotatingApiKeyAuthentication(duration=value), which will take precedence
@@ -44,11 +50,12 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
         # rotate the key if the current key has expired
         # return True if a new key has been generated, else False
         # usernames listed in settings.TASTYPIE_APIKEY_PERMANENT are never expired
-        if user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or []):
+        if (user.api_key.key.endswith(getattr(settings, 'TASTYPIE_APIKEY_PERMANENT_POSTFIX', '#p'))
+              or user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or [])):
             return False
         duration = self._apikey_duration or getattr(settings, 'TASTYPIE_APIKEY_DURATION', None)
         if duration:
-            duration = duration if isinstance(duration, dict) else {'days': int(duration)}
+            duration = duration if isinstance(duration, dict) else {'seconds': int(duration)}
             if 'years' in duration:
                 duration['weeks'] = 52 * duration.pop('years')
             valid_dt = user.api_key.created + timedelta(**duration)
