@@ -7,7 +7,7 @@ class CQRSApiMixin(object):
 
     Usage:
 
-        class FooResource(Resource):
+        class FooResource(CQRSApiMixin, Resource):
             class Meta:
                resource_name = 'foo'
 
@@ -57,25 +57,30 @@ class CQRSApiMixin(object):
         return urls
 
 
-def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=None):
+def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=True, permission=True):
     cqrsargs = dict(cqrsargs=dict(cqrs_method=method,
                                   cqrs_name=name,
                                   allowed_methods=allowed_methods,
+                                  permission=permission,
                                   authenticate=authenticate))
 
     def wrap(method):
         # wrap() is called at declaration time and returns dispatch
         # dispatch() is the actual view function, effectively overriding Resource.dispatch
         def dispatch(self, request, *args, **kwargs):
-            # this is a copy of standard tastypie processing, see Resource.dispatch()
-            # difference here is that we call the @cqrsapi'd method()
+            # this adopted from standard tastypie in Resource.dispatch()
+            # -- main difference here is that we call the @cqrsapi'd method()
             def inner_dispatch(request, *args, **kwargs):
                 self.method_check(request, allowed=dispatch.allowed_methods)
-                if authenticate is None or authenticate:
+                if authenticate:
                     self.is_authenticated(request)
+                if permission and self._meta.authorization:
+                    bundle = self.build_bundle(request=request)
+                    authorization = self._meta.authorization
+                    authorization.is_authorized(dispatch.cqrsname, [request.path], bundle)
                 self.throttle_check(request)
-                self.log_throttled_access(request)
                 resp = method(self, request, *args, **kwargs)
+                self.log_throttled_access(request)
                 return resp
 
             # setup hooks
@@ -91,6 +96,7 @@ def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=None):
 
         dispatch.cqrsname = name or method.__name__
         dispatch.allowed_methods = allowed_methods
+        dispatch.permission = permission if isinstance(permission, str) else None
         dispatch.cqrsapi = True
         dispatch.__doc__ = method.__doc__
         return dispatch
