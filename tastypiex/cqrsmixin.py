@@ -23,7 +23,7 @@ class CQRSApiMixin(object):
         """
         prepend command urls as <resource_name>/<uri>/<command>
         """
-        from django.conf.urls import url as urlfn
+        from django.urls import re_path as urlfn
 
         urls = super(CQRSApiMixin, self).prepend_urls()
         if not hasattr(self._meta, 'extra_actions'):
