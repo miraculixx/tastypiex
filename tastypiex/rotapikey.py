@@ -37,12 +37,18 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
         RotatingApiKeyAuthentication(duration=value), which will take precedence
         over settings. This allows per-resource specifics.
     """
+    _magic_postfix = '#p'
+
     def __init__(self, *args, duration=None, **kwargs):
         self._apikey_duration = duration
         super().__init__(*args, **kwargs)
 
     def get_key(self, user, api_key, now=timezone.now):
+        # check the key twice
+        # -- first, check the key as is
+        # -- second, check the key with the magic postfix (if user does not provide)
         valid = super().get_key(user, api_key)
+        valid = valid if valid is True else super().get_key(user, api_key + self._magic_postfix)
         rotated = self.maybe_rotate_key(user, now=now) if valid is True else False
         return self._unauthorized() if rotated else valid
 
@@ -50,10 +56,10 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
         # rotate the key if the current key has expired
         # return True if a new key has been generated, else False
         # usernames listed in settings.TASTYPIE_APIKEY_PERMANENT are never expired
-        if (user.api_key.key.endswith(getattr(settings, 'TASTYPIE_APIKEY_PERMANENT_POSTFIX', '#p'))
-              or user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or [])):
+        if (user.api_key.key.endswith(getattr(settings, 'TASTYPIE_APIKEY_PERMANENT_POSTFIX', self._magic_postfix))
+                or user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or [])):
             return False
-        duration = self._apikey_duration or getattr(settings, 'TASTYPIE_APIKEY_DURATION', None)
+        duration = getattr(settings, 'TASTYPIE_APIKEY_DURATION', self._apikey_duration)
         if duration:
             duration = duration if isinstance(duration, dict) else {'seconds': int(duration)}
             if 'years' in duration:
@@ -67,3 +73,36 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
                 return True
         return False
 
+
+def seconds(duration=None, **specs):
+    """ Helper to convert any duration to seconds
+
+    Args:
+        duration (str|int|dict): duration in seconds, or as timedelta kwarg
+        **specs (kwargs): timedelta kwargs, optional
+
+    Usage:
+        from tastypiex.rotapikey import duration_as_seconds
+
+        seconds('1s') == seconds(1)
+        seconds('1d')
+        seconds('1w')
+        seconds('1y')
+        seconds(
+    """
+    duration = duration or specs
+    seconds_per_unit = {
+        's': 1,
+        'h': 60 * 60,
+        'd': 24 * 60 * 60,
+        'w': 7 * 24 * 60 * 60,
+        'y': 365 * 24 * 60 * 60
+    }
+    if str(duration)[-1] in seconds_per_unit:
+        unit = duration[-1]
+        duration = int(duration[:-1]) * seconds_per_unit[unit]
+    elif isinstance(duration, dict):
+        duration = timedelta(**duration).total_seconds()
+    else:
+        duration = int(duration)
+    return duration
