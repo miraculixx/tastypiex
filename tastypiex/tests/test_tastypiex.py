@@ -1,16 +1,13 @@
+import os
 from datetime import timedelta
-
 from django.contrib.auth.models import User
+from django.test import TestCase
 from django.utils import timezone
 from tastypie.api import Api
 from tastypie.authentication import Authentication
 from tastypie.http import HttpUnauthorized
 from tastypie.resources import Resource
-
 from unittest.mock import patch, Mock
-
-import os
-from django.test import TestCase
 
 from tastypiex.centralize import ApiCentralizer
 from tastypiex.deferredauth import DeferredAuthentication
@@ -157,9 +154,10 @@ class TastypieXTestCases(TestCase):
         current_key = apikey.key
         auth = RotatingApiKeyAuthentication()
         # no limitation
-        future_dt = lambda: timezone.now() + timedelta(weeks=52 * 5)
-        self.assertTrue(auth.get_key(user, current_key))
-        self.assertTrue(auth.get_key(user, current_key, now=future_dt))
+        with self.settings(TASTYPIE_APIKEY_DURATION=0):
+            future_dt = lambda: timezone.now() + timedelta(weeks=52 * 5)
+            self.assertTrue(auth.get_key(user, current_key))
+            self.assertTrue(auth.get_key(user, current_key, now=future_dt))
         # test user exemption from apikey rotation
         with self.settings(TASTYPIE_APIKEY_DURATION={'days': 5},
                            TASTYPIE_APIKEY_PERMANENT=[user.username]):
@@ -216,9 +214,3 @@ class TastypieXTestCases(TestCase):
         self.assertEqual(seconds('1y'), timedelta(days=365).total_seconds())
         self.assertEqual(seconds(hours=5), timedelta(hours=5).total_seconds())
         self.assertEqual(seconds(days=365), timedelta(days=365).total_seconds())
-
-
-
-
-
-

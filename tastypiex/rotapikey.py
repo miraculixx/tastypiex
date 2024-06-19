@@ -1,8 +1,9 @@
 from datetime import timedelta
 from django.conf import settings
-
 from django.utils import timezone
 from tastypie.authentication import ApiKeyAuthentication
+
+from tastypiex.util import seconds
 
 
 class RotatingApiKeyAuthentication(ApiKeyAuthentication):
@@ -59,7 +60,7 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
         if (user.api_key.key.endswith(getattr(settings, 'TASTYPIE_APIKEY_PERMANENT_POSTFIX', self._magic_postfix))
                 or user.username in (getattr(settings, 'TASTYPIE_APIKEY_PERMANENT', None) or [])):
             return False
-        duration = getattr(settings, 'TASTYPIE_APIKEY_DURATION', self._apikey_duration)
+        duration = seconds(getattr(settings, 'TASTYPIE_APIKEY_DURATION', self._apikey_duration))
         if duration:
             duration = duration if isinstance(duration, dict) else {'seconds': int(duration)}
             if 'years' in duration:
@@ -72,37 +73,3 @@ class RotatingApiKeyAuthentication(ApiKeyAuthentication):
                 user.api_key.save()
                 return True
         return False
-
-
-def seconds(duration=None, **specs):
-    """ Helper to convert any duration to seconds
-
-    Args:
-        duration (str|int|dict): duration in seconds, or as timedelta kwarg
-        **specs (kwargs): timedelta kwargs, optional
-
-    Usage:
-        from tastypiex.rotapikey import duration_as_seconds
-
-        seconds('1s') == seconds(1)
-        seconds('1d')
-        seconds('1w')
-        seconds('1y')
-        seconds(
-    """
-    duration = duration or specs
-    seconds_per_unit = {
-        's': 1,
-        'h': 60 * 60,
-        'd': 24 * 60 * 60,
-        'w': 7 * 24 * 60 * 60,
-        'y': 365 * 24 * 60 * 60
-    }
-    if str(duration)[-1] in seconds_per_unit:
-        unit = duration[-1]
-        duration = int(duration[:-1]) * seconds_per_unit[unit]
-    elif isinstance(duration, dict):
-        duration = timedelta(**duration).total_seconds()
-    else:
-        duration = int(duration)
-    return duration

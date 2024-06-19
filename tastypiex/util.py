@@ -1,7 +1,9 @@
 from importlib import import_module
 
+import functools
 import importlib
 import sys
+from datetime import timedelta
 
 
 def load_api(qualif):
@@ -41,3 +43,49 @@ def load_class(requested_class):
         except Exception:
             raise
     return requested_class
+
+
+# dicts must be hashable to be memoized
+# -- see https://stackoverflow.com/a/8706053/890242
+@functools.cache(lambda duration: frozenset(duration) if isinstance(duration, dict) else duration)
+def seconds(duration=None, **specs):
+    """ Helper to convert any duration to seconds
+
+    Args:
+        duration (str|int|dict): duration in seconds, or as timedelta kwarg
+        **specs (kwargs): timedelta kwargs, optional
+
+    Usage:
+        from tastypiex.rotapikey import duration_as_seconds
+
+        seconds('1s') == seconds(1)
+        seconds('1d')
+        seconds('1w')
+        seconds('1y')
+
+    Notes:
+        - if duration is a dict, it is passed to timedelta()
+        - if duration is a string, it is parsed as int or timedelta kwarg
+        - if duration is an int, it is returned as is
+        - this function is memoized to speed up repeated calls on the same input
+    """
+    if isinstance(duration, (int, float)):
+        return duration
+    duration = duration or specs
+    seconds_per_unit = {
+        's': 1,
+        'h': 60 * 60,
+        'd': 24 * 60 * 60,
+        'w': 7 * 24 * 60 * 60,
+        'y': 365 * 24 * 60 * 60
+    }
+    if isinstance(duration, dict):
+        duration = timedelta(**duration).total_seconds()
+    elif str(duration)[-1] in seconds_per_unit:
+        unit = duration[-1]
+        duration = int(duration[:-1]) * seconds_per_unit[unit]
+    elif isinstance(duration, str) and duration.isdigit():
+        duration = int(duration)
+    else:
+        duration = 0
+    return duration
