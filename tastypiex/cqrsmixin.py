@@ -1,3 +1,5 @@
+from tastypie.exceptions import ImmediateHttpResponse, Unauthorized
+from tastypie.http import HttpUnauthorized
 from tastypie.utils import trailing_slash
 
 
@@ -76,8 +78,26 @@ def cqrsapi(method=None, name=None, allowed_methods=None, authenticate=True, per
                     self.is_authenticated(request)
                 if permission and self._meta.authorization:
                     bundle = self.build_bundle(request=request)
-                    authorization = self._meta.authorization
-                    authorization.is_authorized(dispatch.cqrsname, [request.path], bundle)
+                    if any(hasattr(auth, 'is_authorized') for auth in (self, self._meta.authorization)):
+                        # use Resource.is_authorized, or Resource.Meta.authorization.is_authorized, if available
+                        # -- is_authorized() is the generic method for permission authorization
+                        # -- we can pass it the cqrsname as the action
+                        auth_meth = getattr(self, 'is_authorized', None) or getattr(self._meta.authorization,
+                                                                                    'is_authorized')
+                        auth_args = dispatch.cqrsname, [request.path], bundle
+                    else:
+                        # fall back to standard authorization, using read_list or create_list
+                        # -- standard authorization primitives are of the format <crud>_<list|detail>
+                        #    e.g. read_list, create_list, read_detail, create_detail, etc.
+                        # -- use the request method to derive the action, we simply use the list variant
+                        authorization = self._meta.authorization
+                        action = 'read' if request.method in ('GET', 'HEAD', 'OPTIONS') else 'create'
+                        auth_meth = getattr(authorization, f'{action}_list')
+                        auth_args = [request.path], bundle
+                    try:
+                        auth_meth(*auth_args)
+                    except Unauthorized as e:
+                        raise ImmediateHttpResponse(HttpUnauthorized())
                 self.throttle_check(request)
                 resp = method(self, request, *args, **kwargs)
                 self.log_throttled_access(request)
