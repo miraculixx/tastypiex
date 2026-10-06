@@ -1,4 +1,5 @@
 import os
+
 from setuptools import setup
 
 README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
@@ -8,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='tastypiex',
-    version='0.8',
+    version='0.9',
     packages=['tastypiex'],
     include_package_data=True,
     license='MIT',  # example license
@@ -31,15 +32,14 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     install_requires=[
-        'Django>=3.2,<5',
+        'Django>=4.2,<=5.2',
         'django-tastypie>=0.14.3',
         'docutils==0.15',
     ],
     extras_require={
-      'swagger': [
-          'django-tastypie-swagger@git+https://github.com/miraculixx/django-tastypie-swagger.git',
-      ]
+        'swagger': [
+            'django-tastypie-swagger@git+https://github.com/miraculixx/django-tastypie-swagger.git',
+        ]
     },
-    dependency_links=[
-    ]
+    dependency_links=[],
 )
