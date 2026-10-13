@@ -32,7 +32,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
     install_requires=[
-        'Django>=4.2,<=5.2',
+        'Django>=4.2,<5.3',
         'django-tastypie>=0.14.3',
         'docutils==0.15',
     ],
