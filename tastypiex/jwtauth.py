@@ -36,7 +36,6 @@ class JWTAuthentication(Authentication):
         Should return either ``True`` if allowed, ``False`` if not or an
         ``HttpResponse`` if you need something custom.
         """
-        from jwt_auth.exceptions import AuthenticationFailed
         # validate credentials in jwt
         try:
             userid, token = self.extract_credentials(request)
@@ -55,6 +54,7 @@ class JWTAuthentication(Authentication):
 
 
 def jwt_get_user_id_from_payload_handler(payload):
+    # TODO replace with landingpage.jwthandler
     # this retrieves the userid from a username, not the userid
     # adapted from jwt_auth.utils.jwt_get_user_id_from_payload_handler
     username = payload.get(getattr(settings, 'JWT_PAYLOAD_USERNAME_KEY', 'preferred_username'))
